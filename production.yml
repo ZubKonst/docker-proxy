@@ -1,0 +1,30 @@
+web:
+  image: zubkonst/simple_rack:latest
+  restart: always
+  command: unicorn -c config/unicorn.rb
+  environment:
+    RACK_ENV: production
+    WEB_CONCURRENCY: 4
+    VIRTUAL_HOST: simple_rack
+  expose:
+    - 8080
+
+nginx:
+  image: nginx
+  container_name: simple_rack_nginx
+  restart: always
+  ports:
+    - 80:80
+  volumes:
+    - /tmp/nginx:/etc/nginx/conf.d
+    - /var/log/nginx:/var/log/nginx
+
+nginx-gen:
+  image: jwilder/docker-gen
+  restart: always
+  volumes_from:
+    - nginx
+  volumes:
+    - /var/run/docker.sock:/tmp/docker.sock:ro
+    - ./templates:/etc/docker-gen/templates:ro
+  command: "-notify-sighup simple_rack_nginx -watch -only-exposed /etc/docker-gen/templates/nginx.tmpl /etc/nginx/conf.d/default.conf"
